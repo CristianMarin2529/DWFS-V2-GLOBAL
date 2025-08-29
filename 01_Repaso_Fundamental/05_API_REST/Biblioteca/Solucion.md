@@ -1,0 +1,19 @@
+**Recursos identificados:**
+- Libro (books): Representa un libro de la biblioteca.
+- Préstamo (loans): Representa un préstamo de un libro a un usuario.
+- Usuario (users): Representa un usuario de la biblioteca.
+- Reporte (reports): Representa un reporte de los libros prestados a un usuario.
+
+| Método HTTP                            | URI                      | Query Params  | Cuerpo de la Petición                                              | Cuerpo de la Respuesta                                                                | Códigos de Respuesta                                                       |
+|----------------------------------------|--------------------------|---------------|--------------------------------------------------------------------|---------------------------------------------------------------------------------------|----------------------------------------------------------------------------|
+| GET                                    | /books                   | title, author | N/A                                                                | `{"books": [{"id": 789, "title": "RESTful Design", "author": "John Doe"}]}`           | 200 OK<br/>400 Bad Request<br/>500 Internal Server Error                   |
+| POST                                   | /loans                   | N/A           | `{"userId": 123, "bookId": 789, "dueDate": "2023-08-01"}`          | `{"loanId": 321, "userId": 123, "bookId": 789, "dueDate": "2023-08-01"}`              | 201 Created<br/>400 Bad Request<br/>500 Internal Server Error              |
+| DELETE (podría haber sido PUT o PATCH) | /loans/{loanId}          | N/A           | N/A                                                                | `{"message": "Loan returned"}`                                                        | 200 OK<br/>404 Not Found<br/>500 Internal Server Error                     |
+| GET                                    | /users/{userId}/loans    | N/A           | N/A                                                                | `{"loans": [{"loanId": 321, "bookId": 789, "dueDate": "2023-08-01"}]}`                | 200 OK<br/>404 Not Found<br/>500 Internal Server Error                     |
+| PATCH                                  | /books/{bookId}          | N/A           | `{"title": "Advanced REST", "author": "Jane Smith", "year": 2023}` | `{"bookId": 789, "title": "Advanced REST", "author": "Jane Smith", "year": 2023}`     | 200 OK<br/>400 Bad Request<br/>404 Not Found<br/>500 Internal Server Error |
+| POST                                   | /users/{userId}/reports/ | N/A           | N/A                                                                | `{"userId": 123, "loans": [{"loanId": 321, "bookId": 789, "dueDate": "2023-08-01"}]}` | 202 Accepted<br/>404 Not Found<br/>500 Internal Server Error               |
+
+Consideraciones:
+- A la hora de crear el prestamo, podría ser también una opción haber tenido un endpoint POST /users/{userId}/loans para registrar un préstamo directamente asociado a un usuario.
+- El endpoint DELETE para dar de baja un préstamo podría haber sido implementado como PUT o PATCH. Recuerda que el hecho de que se use DELETE no implica que el préstamo se elimine de la base de datos, sino que puede que se marque como devuelto o finalizado.
+- Para generar el reporte, se especifica en el enunciado que se almacenará en el sistema, por lo que el endpoint POST /users/{userId}/reports/ podría devolver un código 202 Accepted para indicar que la solicitud ha sido aceptada y se procesará posteriormente. En cualquier caso, se usa POST para indicar que se está creando un nuevo recurso que podrá ser consultado más adelante en caso de ser necesario.

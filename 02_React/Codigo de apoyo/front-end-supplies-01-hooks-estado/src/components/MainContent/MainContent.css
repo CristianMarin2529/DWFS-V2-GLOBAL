@@ -1,0 +1,14 @@
+/* Estilos para el área principal de contenido */
+.main-content {
+    margin-left: 220px;
+    background: #fff;
+    padding: 32px 24px 32px 24px;
+    transition: margin-left 0.3s;
+}
+
+.newsletter-error {
+  color: #d32f2f;
+  min-height: 24px;
+  margin: 0;
+  font-size: 0.98rem;
+}
