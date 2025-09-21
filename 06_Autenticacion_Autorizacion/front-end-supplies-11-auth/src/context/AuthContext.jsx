@@ -4,14 +4,14 @@ export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
-    const [sessionId, setSessionId] = useState(null);
+    const [accessToken, setAccessToken] = useState(null);
     const [sessionTimer, setSessionTimer] = useState(null);
     const [showRenewalModal, setShowRenewalModal] = useState(false);
 
     // Función para limpiar la sesión
     const clearSession = () => {
         setUser(null);
-        setSessionId(null);
+        setAccessToken(null);
         setShowRenewalModal(false);
         if (sessionTimer) {
             clearTimeout(sessionTimer);
@@ -32,9 +32,9 @@ export const AuthProvider = ({ children }) => {
         setSessionTimer(timer);
     };
 
-    // Cuando se establece un sessionId, iniciar el temporizador
+    // Cuando se establece un accessToken, iniciar el temporizador
     useEffect(() => {
-        if (sessionId) {
+        if (accessToken) {
             startSessionTimer();
         }
         return () => {
@@ -42,14 +42,14 @@ export const AuthProvider = ({ children }) => {
                 clearTimeout(sessionTimer);
             }
         };
-    }, [sessionId]);
+    }, [accessToken]);
 
     return (
         <AuthContext.Provider value={{
             user,
             setUser,
-            sessionId,
-            setSessionId,
+            accessToken,
+            setAccessToken,
             clearSession,
             showRenewalModal,
             setShowRenewalModal,

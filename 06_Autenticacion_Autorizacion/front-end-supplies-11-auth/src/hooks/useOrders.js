@@ -116,7 +116,7 @@ export const useOrders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { sessionId } = useContext(AuthContext);
+  const { accessToken } = useContext(AuthContext);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -124,16 +124,16 @@ export const useOrders = () => {
         setLoading(true);
         setError(null);
 
-        // Verificar que hay una sesión activa
-        if (!sessionId) {
-          throw new Error('No hay sesión activa');
+        // Verificar que hay un token activo
+        if (!accessToken) {
+          throw new Error('No hay token de acceso activo');
         }
 
         // Usar el gateway para peticiones de órdenes
         const apiUrl = buildApiUrl('ORDERS', '/api/v1/orders');
         const headers = {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionId}`
+          'Authorization': `Bearer ${accessToken}`
         };
 
         const response = await fetch(apiUrl, { headers });
@@ -154,14 +154,14 @@ export const useOrders = () => {
       }
     };
 
-    // Solo hacer la petición si hay sessionId
-    if (sessionId) {
+    // Solo hacer la petición si hay accessToken
+    if (accessToken) {
       fetchOrders();
     } else {
       setLoading(false);
-      setError('No hay sesión activa');
+      setError('No hay token de acceso activo');
     }
-  }, [sessionId]);
+  }, [accessToken]);
 
   return { orders, loading, error };
 };

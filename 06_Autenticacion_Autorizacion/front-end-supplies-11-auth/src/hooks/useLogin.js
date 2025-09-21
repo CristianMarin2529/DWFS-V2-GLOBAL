@@ -7,7 +7,7 @@ import CryptoJS from "crypto-js";
 export function useLogin() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const { user, setUser, setSessionId, clearSession, startSessionTimer } = useContext(AuthContext);
+  const { user, setUser, setAccessToken, clearSession, startSessionTimer } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const login = async (username, password) => {
@@ -31,8 +31,8 @@ export function useLogin() {
         password: hashedPassword
       };
 
-      // Realizar petición al backend
-      const apiUrl = buildApiUrl('USERS', '/api/v1/sessions');
+      // Realizar petición al backend - cambio de sessions a tokens
+      const apiUrl = buildApiUrl('USERS', '/api/v1/tokens');
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
@@ -42,27 +42,27 @@ export function useLogin() {
       });
 
       if (response.ok) {
-        const sessionData = await response.json();
+        const tokenData = await response.json();
 
-        // Obtener información del usuario usando el sessionId
+        // Obtener información del usuario usando el accessToken
         const userInfoUrl = buildApiUrl('USERS', `/api/v1/users/${username}`);
-        console.log("Lanzando peticion con sessionId:", sessionData.sessionId);
+        console.log("Lanzando peticion con accessToken:", tokenData.accessToken);
         const userResponse = await fetch(userInfoUrl, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${sessionData.sessionId}`
+            'Authorization': `Bearer ${tokenData.accessToken}`
           }
         });
 
         if (userResponse.ok) {
           const userData = await userResponse.json();
 
-          // Login exitoso - almacenar sessionId y datos completos del usuario
-          setSessionId(sessionData.sessionId);
+          // Login exitoso - almacenar accessToken y datos completos del usuario
+          setAccessToken(tokenData.accessToken);
           setUser({
             ...userData,
-            sessionId: sessionData.sessionId
+            accessToken: tokenData.accessToken
           });
 
           console.log("Login exitoso para:", userData.name);
@@ -86,30 +86,39 @@ export function useLogin() {
     }
   };
 
-  const renewSession = async (sessionId) => {
+  const renewSession = async (currentAccessToken) => {
     try {
-      if (!user || !user.cif) {
-        throw new Error('No hay información de usuario disponible');
-      }
-      // Hacer petición GET al perfil como heartbeat para renovar sesión
-      const userInfoUrl = buildApiUrl('USERS', `/api/v1/users/${user.cif}`);
-      const response = await fetch(userInfoUrl, {
-        method: 'GET',
+      // Hacer petición POST para renovar el token
+      const renewalUrl = buildApiUrl('USERS', `/api/v1/tokens/${currentAccessToken}/renewals`);
+      const response = await fetch(renewalUrl, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionId}`
+          'Authorization': `Bearer ${currentAccessToken}`
         }
       });
 
       if (response.ok) {
-        // No necesitamos hacer nada con la respuesta, solo reiniciar el temporizador
+        const tokenData = await response.json();
+
+        // Actualizar el token en el contexto con el nuevo accessToken
+        setAccessToken(tokenData.accessToken);
+        if (user) {
+          setUser({
+            ...user,
+            accessToken: tokenData.accessToken
+          });
+        }
+
+        // Reiniciar el temporizador
         startSessionTimer();
+        console.log("Token renovado exitosamente:", tokenData.accessToken);
         return { success: true };
       } else {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
     } catch (err) {
-      console.error("Error renovando sesión:", err);
+      console.error("Error renovando token:", err);
       // Si falla la renovación, cerrar sesión
       clearSession();
       navigate("/");

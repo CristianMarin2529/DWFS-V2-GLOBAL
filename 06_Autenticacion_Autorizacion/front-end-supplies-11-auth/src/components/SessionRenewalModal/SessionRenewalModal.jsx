@@ -4,11 +4,11 @@ import { useLogin } from '../../hooks/useLogin';
 import './SessionRenewalModal.css';
 
 export default function SessionRenewalModal() {
-  const { sessionId, showRenewalModal, setShowRenewalModal, clearSession } = useContext(AuthContext);
+  const { accessToken, showRenewalModal, setShowRenewalModal, clearSession } = useContext(AuthContext);
   const { renewSession } = useLogin();
 
   const handleRenewSession = async () => {
-    const result = await renewSession(sessionId);
+    const result = await renewSession(accessToken);
     if (result.success) {
       setShowRenewalModal(false);
     }

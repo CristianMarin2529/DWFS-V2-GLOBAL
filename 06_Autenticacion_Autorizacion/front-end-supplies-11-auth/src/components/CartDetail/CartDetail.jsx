@@ -8,7 +8,7 @@ import './CartDetail.css';
 export default function CartDetail() {
   const [isProcessing, setIsProcessing] = useState(false);
   const { items, updateQuantity, removeFromCart, getTotalPrice, clearCart } = useCart();
-  const { user, sessionId } = useContext(AuthContext);
+  const { accessToken } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const handleQuantityChange = (productId, newQuantity) => {
@@ -22,8 +22,8 @@ export default function CartDetail() {
   const handleProceedToPayment = async () => {
     if (items.length === 0) return;
 
-    // Verificar que hay una sesión activa
-    if (!sessionId) {
+    // Verificar que hay un token activo
+    if (!accessToken) {
       alert('Debe iniciar sesión para realizar un pedido');
       navigate('/');
       return;
@@ -45,7 +45,7 @@ export default function CartDetail() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionId}`
+          'Authorization': `Bearer ${accessToken}`
         },
         body: JSON.stringify(orderData)
       });
