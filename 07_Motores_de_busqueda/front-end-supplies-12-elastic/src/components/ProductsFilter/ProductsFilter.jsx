@@ -1,215 +1,190 @@
-import React, { useState, useEffect, useRef } from "react";
-import "./ProductsFilter.css";
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import './ProductsFilter.css';
 
-export default function ProductsFilter({ filters, onFiltersChange }) {
-  const [localFilters, setLocalFilters] = useState(filters);
-  const [searchTimeout, setSearchTimeout] = useState(null);
-  const [priceTimeout, setPriceTimeout] = useState(null);
+export default function ProductsFilter({ filters, onFiltersChange, aggregations = [], products = [] }) {
+    const [localFilters, setLocalFilters] = useState(filters);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const nameInputRef = useRef(null);
+    const suggestionsRef = useRef(null);
+    const navigate = useNavigate();
 
-  // Opciones de tipo de producto
-  const productTypes = [
-    { value: "", label: "Todos los tipos" },
-    { value: "Electronics", label: "Electrónicos" },
-    { value: "Furniture", label: "Muebles" },
-    { value: "Stationery", label: "Papelería" }
-  ];
+    useEffect(() => {
+        setLocalFilters(filters);
+    }, [filters]);
 
-  // Efecto para manejar el debounce en la búsqueda por nombre
-  useEffect(() => {
-    if (searchTimeout) {
-      clearTimeout(searchTimeout);
-    }
+    // Verificar si hay filtros aplicados
+    const hasActiveFilters = localFilters.name.trim().length > 0 || localFilters.type.length > 0;
 
-    const timeout = setTimeout(() => {
-      // Solo hacer petición si:
-      // 1. El campo está vacío (permite búsqueda por otros filtros)
-      // 2. O tiene 3 o más caracteres
-      if (localFilters.name === "" || localFilters.name.length >= 3) {
-        if (localFilters.name !== filters.name) {
-          onFiltersChange(localFilters);
+    // Función para resaltar texto
+    const highlightText = (text, searchTerm) => {
+        if (!searchTerm) return text;
+
+        const regex = new RegExp(`(${searchTerm})`, 'gi');
+        const parts = text.split(regex);
+
+        return parts.map((part, index) =>
+            regex.test(part) ?
+                <strong key={index} style={{ color: '#389cd1', fontWeight: 700 }}>{part}</strong> :
+                part
+        );
+    };
+
+    const handleNameChange = (e) => {
+        const value = e.target.value;
+        const newFilters = { ...localFilters, name: value };
+        setLocalFilters(newFilters);
+
+        // Mostrar sugerencias si hay 3+ caracteres
+        setShowSuggestions(value.trim().length >= 3);
+
+        // Aplicar filtros para la búsqueda principal
+        if (value === '' || value.length >= 3) {
+            onFiltersChange(newFilters);
         }
-      }
-    }, 500); // Esperar 500ms después de que el usuario deje de escribir
-
-    setSearchTimeout(timeout);
-
-    return () => {
-      if (timeout) {
-        clearTimeout(timeout);
-      }
     };
-  }, [localFilters.name]);
 
-  // Efecto para manejar el debounce en los precios (slider y inputs)
-  useEffect(() => {
-    if (priceTimeout) {
-      clearTimeout(priceTimeout);
-    }
-
-    const timeout = setTimeout(() => {
-      if (
-        localFilters.minPrice !== filters.minPrice ||
-        localFilters.maxPrice !== filters.maxPrice
-      ) {
-        onFiltersChange(localFilters);
-      }
-    }, 300); // Timeout más corto para precios
-
-    setPriceTimeout(timeout);
-
-    return () => {
-      if (timeout) {
-        clearTimeout(timeout);
-      }
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            setShowSuggestions(false);
+            onFiltersChange(localFilters);
+        }
     };
-  }, [localFilters.minPrice, localFilters.maxPrice]);
 
-  // Aplicar filtro de tipo inmediatamente
-  useEffect(() => {
-    if (localFilters.type !== filters.type) {
-      onFiltersChange(localFilters);
-    }
-  }, [localFilters.type]);
-
-  const handleInputChange = (field, value) => {
-    setLocalFilters(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handlePriceChange = (field, value) => {
-    const numValue = parseInt(value) || 0;
-
-    // Validar rangos
-    if (field === 'minPrice') {
-      const validMin = Math.max(0, Math.min(numValue, localFilters.maxPrice - 1));
-      setLocalFilters(prev => ({
-        ...prev,
-        minPrice: validMin
-      }));
-    } else if (field === 'maxPrice') {
-      const validMax = Math.min(10000, Math.max(numValue, localFilters.minPrice + 1));
-      setLocalFilters(prev => ({
-        ...prev,
-        maxPrice: validMax
-      }));
-    }
-  };
-
-  const handleReset = () => {
-    const resetFilters = {
-      name: "",
-      minPrice: 0,
-      maxPrice: 10000,
-      type: ""
+    const handleSuggestionClick = (productId) => {
+        setShowSuggestions(false);
+        navigate(`/products/${productId}`);
     };
-    setLocalFilters(resetFilters);
-    onFiltersChange(resetFilters);
-  };
 
-  return (
-    <div className="products-filter">
-      <div className="filter-section">
-        <h3>Buscar productos</h3>
+    const handleSearchClick = (searchTerm) => {
+        setShowSuggestions(false);
+        const newFilters = { ...localFilters, name: searchTerm };
+        setLocalFilters(newFilters);
+        onFiltersChange(newFilters);
+    };
 
-        {/* Barra de búsqueda por nombre */}
-        <div className="search-bar">
-          <input
-            type="text"
-            placeholder="Buscar productos... (mínimo 3 caracteres)"
-            value={localFilters.name}
-            onChange={(e) => handleInputChange('name', e.target.value)}
-            className="search-input"
-          />
-          <span className="search-icon">🔍</span>
+    const handleTypeClick = (selectedType) => {
+        setShowSuggestions(false);
+        const newType = localFilters.type === selectedType ? '' : selectedType;
+        const newFilters = { ...localFilters, type: newType };
+        setLocalFilters(newFilters);
+        onFiltersChange(newFilters);
+    };
+
+    const clearFilters = () => {
+        setShowSuggestions(false);
+        const clearedFilters = {
+            name: '',
+            type: ''
+        };
+        setLocalFilters(clearedFilters);
+        onFiltersChange(clearedFilters);
+
+        if (nameInputRef.current) {
+            nameInputRef.current.focus();
+        }
+    };
+
+    // Cerrar sugerencias al hacer clic fuera
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (suggestionsRef.current && !suggestionsRef.current.contains(event.target) &&
+                nameInputRef.current && !nameInputRef.current.contains(event.target)) {
+                setShowSuggestions(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
+
+    return (
+        <div className="products-filter">
+            <div className="search-bar-container">
+                <div className="search-bar">
+                    <input
+                        ref={nameInputRef}
+                        type="text"
+                        placeholder="Buscar productos... (mínimo 3 caracteres)"
+                        value={localFilters.name}
+                        onChange={handleNameChange}
+                        onKeyDown={handleKeyDown}
+                        className="search-input"
+                        autoComplete="off"
+                    />
+                    <div className="search-icon">🔍</div>
+
+                    {/* Sugerencias de búsqueda */}
+                    {showSuggestions && localFilters.name.trim().length >= 3 && (
+                        <div ref={suggestionsRef} className="suggestions-dropdown">
+                            {products.length > 0 && (
+                                <>
+                                    {products.slice(0, 8).map(product => (
+                                        <div
+                                            key={product.id}
+                                            className="suggestion-item clickable"
+                                            onClick={() => handleSuggestionClick(product.id)}
+                                        >
+                                            <div className="suggestion-icon">📦</div>
+                                            <div className="suggestion-text">
+                                                {highlightText(product.name, localFilters.name.trim())}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </>
+                            )}
+
+                            {products.length === 0 && (
+                                <div
+                                    className="suggestion-item search-fallback clickable"
+                                    onClick={() => handleSearchClick(localFilters.name.trim())}
+                                >
+                                    <div className="suggestion-icon">🔍</div>
+                                    <div className="suggestion-text">
+                                        Buscar por "<strong>{localFilters.name.trim()}</strong>"
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            <div className="filters-container">
+                <h3>Filtros de búsqueda</h3>
+
+                <div className="filters-grid">
+                    <div className="filter-group">
+                        <label>Categorías:</label>
+                        <div className="type-buttons-container">
+                            {aggregations.map(agg => (
+                                <button
+                                    key={agg.key}
+                                    onClick={() => handleTypeClick(agg.key)}
+                                    className={`type-button ${localFilters.type === agg.key ? 'active' : ''}`}
+                                    type="button"
+                                >
+                                    {agg.key} ({agg.count})
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="filter-group">
+                        <button
+                            onClick={clearFilters}
+                            className={`clear-filters-btn ${!hasActiveFilters ? 'disabled' : ''}`}
+                            type="button"
+                            disabled={!hasActiveFilters}
+                        >
+                            Limpiar filtros
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
-
-        {/* Filtros adicionales */}
-        <div className="filters-row">
-          {/* Filtro de tipo */}
-          <div className="filter-group">
-            <label htmlFor="type-select">Tipo de producto:</label>
-            <select
-              id="type-select"
-              value={localFilters.type}
-              onChange={(e) => handleInputChange('type', e.target.value)}
-              className="type-select"
-            >
-              {productTypes.map(type => (
-                <option key={type.value} value={type.value}>
-                  {type.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Filtro de precio */}
-          <div className="filter-group price-group">
-            <label>Rango de precio:</label>
-            <div className="price-inputs">
-              <div className="price-input-group">
-                <label htmlFor="min-price">Mín:</label>
-                <input
-                  id="min-price"
-                  type="number"
-                  min="0"
-                  max="9999"
-                  value={localFilters.minPrice}
-                  onChange={(e) => handlePriceChange('minPrice', e.target.value)}
-                  className="price-input"
-                />
-                <span>€</span>
-              </div>
-              <div className="price-input-group">
-                <label htmlFor="max-price">Máx:</label>
-                <input
-                  id="max-price"
-                  type="number"
-                  min="1"
-                  max="10000"
-                  value={localFilters.maxPrice}
-                  onChange={(e) => handlePriceChange('maxPrice', e.target.value)}
-                  className="price-input"
-                />
-                <span>€</span>
-              </div>
-            </div>
-
-            {/* Barra deslizante para el rango de precios */}
-            <div className="price-slider">
-              <input
-                type="range"
-                min="0"
-                max="10000"
-                step="10"
-                value={localFilters.minPrice}
-                onChange={(e) => handlePriceChange('minPrice', e.target.value)}
-                className="slider min-slider"
-              />
-              <input
-                type="range"
-                min="0"
-                max="10000"
-                step="10"
-                value={localFilters.maxPrice}
-                onChange={(e) => handlePriceChange('maxPrice', e.target.value)}
-                className="slider max-slider"
-              />
-            </div>
-            <div className="price-range-display">
-              €{localFilters.minPrice} - €{localFilters.maxPrice}
-            </div>
-          </div>
-
-          {/* Botón para limpiar filtros */}
-          <div className="filter-group">
-            <button onClick={handleReset} className="reset-filters-btn">
-              Limpiar filtros
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+    );
 }

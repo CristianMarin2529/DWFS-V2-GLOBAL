@@ -1,135 +1,176 @@
-import { useState, useEffect, useCallback } from "react";
-import { mockProducts } from "../utils/mockData";
-import { buildApiUrl } from "../utils/apiConfig";
+import { useState, useEffect, useCallback } from 'react';
+import { buildApiUrl } from '../utils/apiConfig';
 
 export function useProducts() {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [error, setError] = useState("");
-  const [hasMoreProducts, setHasMoreProducts] = useState(true);
-  const [currentPage, setCurrentPage] = useState(0);
+    const [products, setProducts] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [error, setError] = useState(null);
+    const [hasMoreProducts, setHasMoreProducts] = useState(true);
+    const [totalProducts, setTotalProducts] = useState(0);
+    const [aggregations, setAggregations] = useState([]);
+    const [currentPage, setCurrentPage] = useState(0);
 
-  // Estados para filtros
-  const [filters, setFilters] = useState({
-    name: "",
-    minPrice: 0,
-    maxPrice: 10000,
-    type: ""
-  });
+    const [filters, setFilters] = useState({
+        name: '',
+        type: ''
+    });
 
-  const buildQueryParams = (page = 0, currentFilters = filters) => {
-    const params = new URLSearchParams();
-    params.append('page', page.toString());
+    const buildQueryParams = useCallback((page = 0, currentFilters = filters) => {
+        const params = new URLSearchParams();
 
-    // Solo incluir el filtro de nombre si está vacío O tiene 3+ caracteres
-    if (currentFilters.name && currentFilters.name.length >= 3) {
-      params.append('name', currentFilters.name);
-    }
+        if (page > 0) {
+            params.append('page', page.toString());
+        }
 
-    if (currentFilters.minPrice > 0) {
-      params.append('minPrice', currentFilters.minPrice.toString());
-    }
+        if (currentFilters.name && currentFilters.name.trim().length >= 3) {
+            params.append('name', currentFilters.name.trim());
+        }
 
-    if (currentFilters.maxPrice < 10000) {
-      params.append('maxPrice', currentFilters.maxPrice.toString());
-    }
+        if (currentFilters.type) {
+            params.append('type', currentFilters.type);
+        }
 
-    if (currentFilters.type) {
-      params.append('type', currentFilters.type);
-    }
+        return params.toString();
+    }, [filters]);
 
-    return params.toString();
-  };
-
-  const fetchProducts = useCallback(async (page = 0, isLoadMore = false, currentFilters = filters) => {
-    console.log(`🔍 Fetching products - Page: ${page}, IsLoadMore: ${isLoadMore}, Filters:`, currentFilters);
-
-    if (isLoadMore) {
-      setLoadingMore(true);
-    } else {
-      setLoading(true);
-      setProducts([]);
-    }
-
-    setError("");
-
-    try {
-      const queryParams = buildQueryParams(page, currentFilters);
-      const apiUrl = buildApiUrl('CATALOGUE', `/api/v1/supplies?${queryParams}`);
-      console.log(`📡 API URL: ${apiUrl}`);
-
-      const response = await fetch(apiUrl);
-
-      if (!response.ok) {
-        throw new Error('Error al cargar productos del servidor');
-      }
-
-      const data = await response.json();
-      const newProducts = data.supplies || [];
-      console.log(`📦 Received ${newProducts.length} products`);
-
-      if (newProducts.length === 0) {
-        console.log("❌ No more products available");
-        setHasMoreProducts(false);
-      } else {
-        if (isLoadMore) {
-          console.log("➕ Adding products to existing list");
-          setProducts(prev => [...prev, ...newProducts]);
+    const fetchProducts = useCallback(async (page = 0, append = false) => {
+        if (append) {
+            setLoadingMore(true);
         } else {
-          console.log("🔄 Replacing product list");
-          setProducts(newProducts);
-          setHasMoreProducts(true);
+            setLoading(true);
         }
-        setCurrentPage(page);
-      }
 
-    } catch (err) {
-      console.log("❌ Error en petición HTTP:", err.message);
-      console.log("📋 Cargando datos de respaldo...");
+        setError(null);
 
-      // Cargar datos de respaldo con un pequeño delay para simular carga
-      setTimeout(() => {
-        if (!isLoadMore) {
-          setProducts(mockProducts);
+        try {
+            const queryParams = buildQueryParams(page);
+            const url = buildApiUrl('CATALOGUE', '/api/v1/supplies');
+            const fullUrl = `${url}${queryParams ? `?${queryParams}` : ''}`;
+
+            const response = await fetch(fullUrl, {
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (!response.ok) {
+                console.error(`Error ${response.status}: ${response.statusText}`);
+                setError('Error al cargar productos. Por favor, inténtalo de nuevo.');
+                if (!append) {
+                    setProducts([]);
+                }
+                return;
+            }
+
+            const data = await response.json();
+
+            // Actualizar productos
+            if (append) {
+                setProducts(prev => [...prev, ...data.supplies]);
+            } else {
+                setProducts(data.supplies);
+                setCurrentPage(0);
+            }
+
+            // Actualizar metadatos
+            setTotalProducts(data.total);
+            setAggregations(data.aggregations || []);
+
+            // Verificar si hay más productos
+            const currentTotal = append ? products.length + data.supplies.length : data.supplies.length;
+            setHasMoreProducts(currentTotal < data.total);
+
+            if (append) {
+                setCurrentPage(page);
+            }
+
+        } catch (err) {
+            console.error('Error fetching products:', err);
+            setError('Error al cargar productos. Por favor, inténtalo de nuevo.');
+
+            if (!append) {
+                setProducts([]);
+            }
+        } finally {
+            setLoading(false);
+            setLoadingMore(false);
         }
-        setError("Datos cargados desde caché local");
-        setHasMoreProducts(false);
-      }, 1000);
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  }, [filters]);
+    }, [buildQueryParams, products.length]);
 
-  // Función para cargar más productos (scroll infinito)
-  const loadMoreProducts = useCallback(() => {
-    if (!loadingMore && hasMoreProducts) {
-      fetchProducts(currentPage + 1, true);
-    }
-  }, [fetchProducts, currentPage, loadingMore, hasMoreProducts]);
+    const loadMoreProducts = useCallback(() => {
+        if (!loadingMore && hasMoreProducts) {
+            fetchProducts(currentPage + 1, true);
+        }
+    }, [currentPage, loadingMore, hasMoreProducts, fetchProducts]);
 
-  // Función para aplicar filtros
-  const applyFilters = useCallback((newFilters) => {
-    setFilters(newFilters);
-    setCurrentPage(0);
-    setHasMoreProducts(true);
-    fetchProducts(0, false, newFilters);
-  }, [fetchProducts]);
+    const applyFilters = useCallback((newFilters) => {
+        // Validar filtro de nombre
+        if (newFilters.name && newFilters.name.trim().length > 0 && newFilters.name.trim().length < 3) {
+            return;
+        }
 
-  // Efecto inicial para cargar productos
-  useEffect(() => {
-    fetchProducts(0, false);
-  }, []);
+        setFilters(newFilters);
+        setCurrentPage(0);
+        setProducts([]);
+        setHasMoreProducts(true);
 
-  return {
-    products,
-    loading,
-    loadingMore,
-    error,
-    hasMoreProducts,
-    filters,
-    loadMoreProducts,
-    applyFilters
-  };
+        // Hacer la búsqueda con los nuevos filtros desde la página 0
+        const queryParams = buildQueryParams(0, newFilters);
+        const url = buildApiUrl('CATALOGUE', '/api/v1/supplies');
+        const fullUrl = `${url}${queryParams ? `?${queryParams}` : ''}`;
+
+        setLoading(true);
+        setError(null);
+
+        fetch(fullUrl, {
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                console.error(`Error ${response.status}: ${response.statusText}`);
+                setError('Error al cargar productos. Por favor, inténtalo de nuevo.');
+                setProducts([]);
+                return;
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data) {
+                setProducts(data.supplies);
+                setTotalProducts(data.total);
+                setAggregations(data.aggregations || []);
+                setHasMoreProducts(data.supplies.length < data.total);
+                setCurrentPage(0);
+            }
+        })
+        .catch(err => {
+            console.error('Error fetching products:', err);
+            setError('Error al cargar productos. Por favor, inténtalo de nuevo.');
+            setProducts([]);
+        })
+        .finally(() => {
+            setLoading(false);
+        });
+    }, [buildQueryParams]);
+
+    // Cargar productos iniciales
+    useEffect(() => {
+        fetchProducts(0, false);
+    }, []);
+
+    return {
+        products,
+        loading,
+        loadingMore,
+        error,
+        hasMoreProducts,
+        totalProducts,
+        aggregations,
+        filters,
+        loadMoreProducts,
+        applyFilters
+    };
 }

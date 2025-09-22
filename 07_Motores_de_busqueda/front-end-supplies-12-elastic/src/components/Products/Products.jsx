@@ -1,15 +1,12 @@
-import React, {useContext, useState, useEffect, useRef} from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "./Products.css";
-import {GlobalContext} from "../../context/GlobalContext";
 import { useProducts } from "../../hooks/useProducts";
 import { Link } from "react-router-dom";
-import SupportChat from "../SupportChat/SupportChat";
 import ProductsFilter from "../ProductsFilter/ProductsFilter";
 
 export default function Products() {
     const [email, setEmail] = useState("");
     const [error, setError] = useState("");
-    const { darkMode } = useContext(GlobalContext);
     const observerRef = useRef();
 
     // Custom hook que maneja toda la lógica de productos con filtros y paginación
@@ -19,6 +16,8 @@ export default function Products() {
         loadingMore,
         error: fetchError,
         hasMoreProducts,
+        totalProducts,
+        aggregations,
         filters,
         loadMoreProducts,
         applyFilters
@@ -78,6 +77,8 @@ export default function Products() {
             <ProductsFilter
                 filters={filters}
                 onFiltersChange={applyFilters}
+                aggregations={aggregations}
+                products={products}
             />
 
             {/* Sección de productos */}
@@ -98,7 +99,9 @@ export default function Products() {
                 {!loading && products.length > 0 && (
                     <>
                         <div className="products-info">
-                            <p>{products.length} producto{products.length !== 1 ? 's' : ''} encontrado{products.length !== 1 ? 's' : ''}</p>
+                            <p>
+                                Mostrando {products.length} de {totalProducts} producto{totalProducts !== 1 ? 's' : ''} encontrado{totalProducts !== 1 ? 's' : ''}
+                            </p>
                         </div>
 
                         <div className="products-grid">
@@ -182,9 +185,6 @@ export default function Products() {
                     </p>
                 </form>
             </section>
-
-            {/* Chat de soporte */}
-            <SupportChat />
         </div>
     );
 }
