@@ -7,7 +7,7 @@ import './CartDetail.css';
 
 export default function CartDetail() {
   const [isProcessing, setIsProcessing] = useState(false);
-  const { items, updateQuantity, removeFromCart, getTotalPrice, clearCart } = useCart();
+  const { items, updateQuantity, removeFromCart, getTotalPrice, clearCart, saveCartForCheckout } = useCart();
   const { accessToken } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -32,6 +32,9 @@ export default function CartDetail() {
     setIsProcessing(true);
 
     try {
+      // Guardar el estado del carrito antes de proceder al pago
+      saveCartForCheckout();
+
       const orderData = {
         supplies: items.map(item => ({
           id: item.id,
@@ -55,9 +58,6 @@ export default function CartDetail() {
 
         // Si hay checkoutUrl en la respuesta, redirigir a la pasarela de pago
         if (result.checkoutUrl) {
-          // Limpiar el carrito antes de redirigir
-          clearCart();
-
           window.alert("A continuación será redirigido a la pasarela de pago. Introduzca los datos de su tarjeta para completar el pedido.");
           window.location.href = result.checkoutUrl;
         } else {

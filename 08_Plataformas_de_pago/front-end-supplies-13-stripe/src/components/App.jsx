@@ -17,6 +17,7 @@ import CartDetail from "./CartDetail/CartDetail.jsx";
 import PrivateRoute from "./PrivateRoute/PrivateRoute.jsx";
 import CartOverview from "./CartOverview/CartOverview.jsx";
 import SessionRenewalModal from "./SessionRenewalModal/SessionRenewalModal.jsx";
+import OrderConfirmation from "./OrderConfirmation/OrderConfirmation.jsx";
 
 export default function App() {
     return (
@@ -44,6 +45,7 @@ export default function App() {
                                             <CartDetail/>
                                         </PrivateRoute>
                                     }/>
+                                    <Route path="order-confirmation" element={<OrderConfirmation/>}/>
                                 </Route>
                             </Routes>
                             <Footer/>

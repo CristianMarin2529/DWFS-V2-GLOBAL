@@ -1,0 +1,266 @@
+.order-confirmation-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 80vh;
+  padding: 2rem;
+  background: var(--background-color);
+}
+
+.confirmation-container {
+  background: var(--card-background);
+  border-radius: 12px;
+  padding: 3rem;
+  max-width: 600px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border-color);
+}
+
+.status-icon {
+  font-size: 4rem;
+  margin-bottom: 1.5rem;
+  display: block;
+}
+
+.status-icon.success {
+  color: #389cd1;
+}
+
+.status-icon.cancelled {
+  color: #389cd1;
+}
+
+.status-icon.error {
+  color: #389cd1;
+}
+
+.confirmation-container h1 {
+  color: var(--text-color);
+  margin-bottom: 1rem;
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+.success-message {
+  color: #389cd1;
+  font-size: 1.1rem;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+.cancelled-message {
+  color: #1976d2;
+  font-size: 1.1rem;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+.error-message {
+  color: #1976d2;
+  font-size: 1.1rem;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+.order-summary {
+  background: var(--background-color);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin: 2rem 0;
+  border: 1px solid var(--border-color);
+}
+
+.order-summary h3 {
+  color: var(--text-color);
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.order-items {
+  margin-bottom: 1rem;
+}
+
+.order-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-color);
+}
+
+.order-item:last-child {
+  border-bottom: none;
+}
+
+.item-name {
+  flex: 1;
+  text-align: left;
+  font-weight: 500;
+}
+
+.item-quantity {
+  margin: 0 1rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.item-price {
+  font-weight: 600;
+  color: #389cd1;
+}
+
+.order-total {
+  padding-top: 1rem;
+  border-top: 2px solid #389cd1;
+  color: var(--text-color);
+  font-size: 1.2rem;
+}
+
+.session-info {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.action-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+}
+
+.primary-btn, .secondary-btn {
+  padding: 0.75rem 2rem;
+  border-radius: 8px;
+  border: none;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 150px;
+}
+
+.primary-btn {
+  background: #389cd1;
+  color: white;
+}
+
+.primary-btn:hover {
+  background: #2a7db0;
+  transform: translateY(-2px);
+}
+
+.secondary-btn {
+  background: transparent;
+  color: #389cd1;
+  border: 2px solid #389cd1;
+}
+
+.secondary-btn:hover {
+  background: #389cd1;
+  color: white;
+  transform: translateY(-2px);
+}
+
+.loading-container {
+  text-align: center;
+  color: var(--text-color);
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid var(--border-color);
+  border-top: 4px solid #389cd1;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.session-card {
+  background: var(--card-background);
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+  text-align: center;
+  font-size: 1.1rem;
+  border: 3px solid #389cd1;
+  box-shadow: 0 2px 8px rgba(56, 156, 209, 0.2);
+}
+
+.success-card {
+  border-color: #389cd1;
+  background: linear-gradient(135deg, rgba(56, 156, 209, 0.1), rgba(56, 156, 209, 0.05));
+  color: #1976d2;
+}
+
+.error-card {
+  border-color: #389cd1;
+  background: linear-gradient(135deg, rgba(56, 156, 209, 0.1), rgba(56, 156, 209, 0.05));
+  color: #1976d2;
+}
+
+.success-card strong {
+  color: #19776d2;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.error-card strong {
+  color: #19776d2;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+  .order-confirmation-page {
+    padding: 1rem;
+  }
+
+  .confirmation-container {
+    padding: 2rem 1.5rem;
+  }
+
+  .status-icon {
+    font-size: 3rem;
+  }
+
+  .confirmation-container h1 {
+    font-size: 1.5rem;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .primary-btn, .secondary-btn {
+    width: 100%;
+    max-width: 250px;
+  }
+
+  .order-item {
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: center;
+  }
+
+  .item-name {
+    text-align: center;
+  }
+
+  .session-card {
+    padding: 0.75rem;
+    font-size: 1rem;
+    margin: 0.75rem 0;
+  }
+}

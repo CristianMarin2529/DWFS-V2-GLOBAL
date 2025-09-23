@@ -1,9 +1,16 @@
-import React, { createContext, useContext, useReducer } from 'react';
+import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import { LocalStorageManager } from '../utils/localStorage';
 
 const CartContext = createContext();
 
 const cartReducer = (state, action) => {
   switch (action.type) {
+    case 'LOAD_FROM_STORAGE':
+      return {
+        ...state,
+        items: action.payload || []
+      };
+
     case 'ADD_TO_CART':
       const existingItem = state.items.find(item => item.id === action.payload.id);
 
@@ -64,6 +71,26 @@ const initialState = {
 export const CartProvider = ({ children }) => {
   const [state, dispatch] = useReducer(cartReducer, initialState);
 
+  // Cargar carrito desde localStorage al inicializar
+  useEffect(() => {
+    const savedCart = LocalStorageManager.getItem(LocalStorageManager.CART_KEY);
+    if (savedCart && savedCart.items) {
+      dispatch({ type: 'LOAD_FROM_STORAGE', payload: savedCart.items });
+    }
+  }, []);
+
+  // Guardar en localStorage cada vez que cambie el carrito
+  useEffect(() => {
+    if (state.items.length > 0) {
+      LocalStorageManager.setItem(LocalStorageManager.CART_KEY, {
+        items: state.items,
+        lastUpdated: Date.now()
+      });
+    } else {
+      LocalStorageManager.removeItem(LocalStorageManager.CART_KEY);
+    }
+  }, [state.items]);
+
   const addToCart = (product) => {
     dispatch({ type: 'ADD_TO_CART', payload: product });
   };
@@ -78,6 +105,7 @@ export const CartProvider = ({ children }) => {
 
   const clearCart = () => {
     dispatch({ type: 'CLEAR_CART' });
+    LocalStorageManager.removeItem(LocalStorageManager.CART_KEY);
   };
 
   const getTotalItems = () => {
@@ -88,6 +116,17 @@ export const CartProvider = ({ children }) => {
     return state.items.reduce((total, item) => total + (item.price * item.quantity), 0);
   };
 
+  // Función para guardar el estado del carrito antes de ir a Stripe
+  const saveCartForCheckout = () => {
+    if (state.items.length > 0) {
+      LocalStorageManager.setItem(LocalStorageManager.CART_KEY, {
+        items: state.items,
+        lastUpdated: Date.now(),
+        isCheckout: true
+      });
+    }
+  };
+
   const value = {
     items: state.items,
     addToCart,
@@ -95,7 +134,8 @@ export const CartProvider = ({ children }) => {
     updateQuantity,
     clearCart,
     getTotalItems,
-    getTotalPrice
+    getTotalPrice,
+    saveCartForCheckout
   };
 
   return (
