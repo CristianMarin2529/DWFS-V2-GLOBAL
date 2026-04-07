@@ -49,10 +49,10 @@ npm install
 Crear la estructura de carpetas manualmente:
 
 ```bash
-mkdir -p src/context src/hooks src/components
+mkdir -p src/context/global src/hooks src/components
 ```
 
-> 📌 **¿Por qué separar en carpetas?** Separar contexto, hooks y componentes facilita encontrar cada pieza y hace explícito su rol en la arquitectura.
+> 📌 **¿Por qué separar en carpetas?** Separar contexto, hooks y componentes facilita encontrar cada pieza y hace explícito su rol en la arquitectura. La subcarpeta `context/global` agrupa los ficheros del contexto global (declaración + Provider) y evita las advertencias de ESLint Fast Refresh al tener cada archivo con una única responsabilidad de exportación.
 
 ---
 
@@ -90,17 +90,27 @@ Definimos dos "conjuntos" de variables CSS: uno para el tema oscuro (por defecto
 
 En esta app, `userName` y `theme` los necesitan `Header`, `AnimalCard` y `FavoritesSidebar`. Sin contexto habría que pasar esas props por `App → AnimalGrid → AnimalCard`, lo cual es ruido innecesario.
 
-### Implementación en tres partes
+### Implementación en tres archivos
+
+> ⚠️ **Motivación:** ESLint con `react-refresh` exige que cada archivo exporte **un único tipo de cosa**: solo componentes, solo constantes o solo funciones. Reunir el contexto, el Provider y el hook en un mismo archivo genera advertencias. La solución es dividirlos.
+
+**1️⃣ Declaración del contexto** — solo exporta la constante `AppContext`:
+
+```js
+// src/context/global/AppContext.js
+import { createContext } from "react";
+
+// Valor por defecto null para detectar usos fuera del Provider
+export const AppContext = createContext(null);
+```
+
+**2️⃣ Provider** — solo exporta el componente `AppProvider`:
 
 ```jsx
-// src/context/AppContext.jsx
+// src/context/global/AppProvider.jsx
+import { useState } from "react";
+import { AppContext } from "./AppContext";
 
-import { createContext, useContext, useState } from "react";
-
-// 1️⃣ Crear el contexto (valor por defecto null para detectar usos fuera del Provider)
-export const AppContext = createContext(null);
-
-// 2️⃣ Provider: envuelve la app y expone los valores
 export function AppProvider({ children }) {
   const [theme, setTheme] = useState("dark");
   const [userName] = useState("Ada Lovelace");
@@ -119,11 +129,18 @@ export function AppProvider({ children }) {
     </AppContext.Provider>
   );
 }
+```
 
-// 3️⃣ Hook de conveniencia para consumir el contexto
-export function useAppContext() {
+**3️⃣ Hook de acceso** — solo exporta la función `useGlobalContext`:
+
+```js
+// src/hooks/useGlobalContext.js
+import { useContext } from "react";
+import { AppContext } from "../context/global/AppContext";
+
+export function useGlobalContext() {
   const ctx = useContext(AppContext);
-  if (!ctx) throw new Error("useAppContext debe usarse dentro de <AppProvider>");
+  if (!ctx) throw new Error("useGlobalContext debe usarse dentro de <AppProvider>");
   return ctx;
 }
 ```
@@ -131,7 +148,8 @@ export function useAppContext() {
 **Tres momentos distintos:**
 1. `createContext` → define la "caja" donde viven los datos globales.
 2. `<AppContext.Provider value={...}>` → "inyecta" los datos en el árbol de componentes.
-3. `useContext(AppContext)` (o el helper `useAppContext()`) → "extrae" los datos desde cualquier componente hijo.
+3. `useContext(AppContext)` (vía `useGlobalContext()`) → "extrae" los datos desde cualquier componente hijo.
+
 
 > 📖 **Doc:** [createContext](https://react.dev/reference/react/createContext) · [useContext](https://react.dev/reference/react/useContext)
 
@@ -267,7 +285,7 @@ function AppContent() {
 export default function App() {
   return (
     <AppProvider>
-      <AppContent />  {/* AppContent puede usar useAppContext porque está dentro del Provider */}
+      <AppContent />  {/* AppContent puede usar useGlobalContext porque está dentro del Provider */}
     </AppProvider>
   );
 }
@@ -283,7 +301,7 @@ export default function App() {
 
 ```jsx
 export default function Header() {
-  const { userName, theme, toggleTheme } = useAppContext();
+  const { userName, theme, toggleTheme } = useGlobalContext();
   // Header está 1 nivel por debajo de AppProvider.
   // No necesita que App le pase userName ni theme como props.
   return (
@@ -321,7 +339,7 @@ Demuestra que `useContext` funciona a cualquier profundidad sin recibir props in
 // App → AnimalGrid → AnimalCard
 // ↑ Provider está aquí      ↑ useContext funciona aquí sin props intermedias
 export default function AnimalCard({ animal, favoritesHook }) {
-  const { userName } = useAppContext(); // ← del contexto, no de props
+  const { userName } = useGlobalContext(); // ← del contexto, no de props
   const { isFavorite, toggleFavorite } = favoritesHook; // ← del custom hook
   // ...
 }
@@ -331,7 +349,7 @@ export default function AnimalCard({ animal, favoritesHook }) {
 
 ```jsx
 export default function FavoritesSidebar({ animals, favoritesHook }) {
-  const { userName } = useAppContext();
+  const { userName } = useGlobalContext();
   const { favorites, removeFavorite } = favoritesHook; // mismo objeto que AnimalCard
 
   // Convierte IDs en objetos completos de animal
@@ -381,7 +399,7 @@ AppProvider (AppContext: userName, theme, toggleTheme)
 | Error | Causa | Solución |
 |---|---|---|
 | Bucle infinito en `useEffect` | Llamar a `setState` dentro de un `useEffect` sin deps, o con una dependencia que cambia en cada render | Revisar el array de dependencias; no incluir objetos/arrays creados inline |
-| `useContext` devuelve `null` o `undefined` | El componente está fuera del `Provider` | Asegurarse de que `<AppProvider>` envuelve a todos los componentes que usan `useAppContext` |
+| `useContext` devuelve `null` o `undefined` | El componente está fuera del `Provider` | Asegurarse de que `<AppProvider>` envuelve a todos los componentes que usan `useGlobalContext` |
 | Los dos componentes no comparten favoritos | Cada componente llama a `useFavorites()` por separado | Llamar al hook una sola vez en el componente raíz y pasar el resultado por props |
 | La función de limpieza de `useEffect` no se ejecuta | No se devuelve la función de limpieza con `return` | `return () => clearTimeout(timer)` dentro del `useEffect` |
 | El `useEffect []` se ejecuta dos veces en desarrollo | React.StrictMode monta/desmonta los componentes intencionalmente para detectar efectos sin limpieza | Es comportamiento esperado en dev. En producción solo se ejecuta una vez |

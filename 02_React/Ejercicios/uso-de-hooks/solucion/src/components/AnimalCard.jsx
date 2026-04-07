@@ -1,10 +1,10 @@
-import { useAppContext } from "../context/AppContext.jsx";
+import { useGlobalContext } from "../hooks/useGlobalContext.js";
 import "./AnimalCard.css";
 
 // AnimalCard está a 2 niveles del Provider (App → AnimalGrid → AnimalCard)
 // Consume el contexto directamente, sin necesitar props intermedias
 export default function AnimalCard({ animal, favoritesHook }) {
-  const { userName } = useAppContext(); // ← useContext en acción
+  const { userName } = useGlobalContext(); // ← useContext en acción
   const { isFavorite, toggleFavorite } = favoritesHook;
   const fav = isFavorite(animal.id);
 

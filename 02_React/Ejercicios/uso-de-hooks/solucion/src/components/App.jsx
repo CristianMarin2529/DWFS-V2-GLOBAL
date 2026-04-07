@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { AppProvider } from "../context/AppContext.jsx";
+import { AppProvider } from "../context/global/AppProvider.jsx";
 import { useFavorites } from "../hooks/useFavorites.js";
 import { useAnimals } from "../hooks/useAnimals.js";
 import Header from "./Header.jsx";
