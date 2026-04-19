@@ -1,6 +1,7 @@
 # Spring Framework - Guía de arranque
 
 En esta sección se trabaja con aplicaciones **front-end** (React + Vite) que se comunican con **microservicios back-end** alojados en repositorios independientes. A continuación se detalla cómo arrancar cada proyecto y qué repositorios back-end son necesarios.
+En el repositorio [back-end-spring-basics](https://github.com/UnirCs/back-end-spring-basics) encontrarás una primera parte con ejemplos básicos de Spring Boot, y a partir del proyecto 07 se utilizan microservicios externos que se deben clonar y arrancar por separado.
 
 ---
 
